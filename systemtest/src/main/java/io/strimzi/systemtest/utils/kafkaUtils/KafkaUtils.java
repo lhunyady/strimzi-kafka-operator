@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.LabelSelector;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.strimzi.api.kafka.model.common.Condition;
@@ -472,6 +473,22 @@ public class KafkaUtils {
     public static String changeOrRemoveKafkaConfiguration(File file, String version, String logMessageFormat, String interBrokerProtocol) {
         YAMLMapper mapper = new YAMLMapper();
         try {
+            Object resource = mapper.readValue(file, HasMetadata.class);
+            Kafka kafka;
+            if(resource instanceof List<?>){
+                kafka = ((List<?>) resource).stream()
+                        .map(HasMetadata.class::cast)
+                        .filter(x->x.getKind().equals(Kafka.RESOURCE_KIND))
+                        .findFirst()
+                        .map(Kafka.class::cast)
+                        .get();
+            } else {
+                kafka = (Kafka) resource;
+            }
+
+
+
+
             JsonNode node = mapper.readTree(file);
             ObjectNode kafkaNode = (ObjectNode) node.at("/spec/kafka");
             if (version == null) {
